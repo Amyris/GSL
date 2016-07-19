@@ -1,2 +1,0 @@
-Mega Stitch ID	Stitch A ID	Stitch B ID
-1000	1001	1002

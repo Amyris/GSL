@@ -1,3 +1,0 @@
-Stitch ID	Slot 1	Slot 2	Slot 3	Slot 4	Slot 5	Slot 6	Slot 7	Slot 8	Slot 9	Tags
-1001	r1003	2663									
-1002	r1005	2666									
