@@ -6,7 +6,7 @@ open parseTypes
 open ryse
 open applySlices
 open PrettyPrint
-open Amyris.biolib
+open Amyris.Bio.biolib
 open constants
 
 type ExtFetchSeq = { id : string ; dna : string ; source : string ;  name : string}
@@ -212,7 +212,7 @@ let fetchFullPartSequence (_ (* verbose*):bool) (library:Map<string,char array>)
             else
                 // Part is in the library
                 EXT_FETCH_OK(
-                   {dna = library.[libName] |> Amyris.utils.arr2seq;
+                   {dna = library.[libName] |> Amyris.Bio.utils.arr2seq;
                     source = "library";
                     id = pid;
                     name = libName})

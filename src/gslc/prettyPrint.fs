@@ -8,7 +8,7 @@ open cloneManager
 open ape
 open l2expline
 open parseTypes
-open Amyris.utils
+open Amyris.Bio.utils
 open constants
 
 /// Pretty print a RelPos

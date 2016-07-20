@@ -3,7 +3,7 @@ module dumpFlat
 open System
 open System.IO
 
-open Amyris.utils
+open Amyris.Bio.utils
 open shared
 open commonTypes
 

@@ -1,6 +1,6 @@
 ﻿module parseTypes
 open Microsoft.FSharp.Text.Lexing
-open Amyris.primercore
+open Amyris.Bio.primercore
 open constants
 open System
 open uri

@@ -5,7 +5,7 @@ open System.Text
 open System
 open commonTypes
 open constants
-open Amyris.utils
+open Amyris.Bio.utils
 open parseTypes
 open shared
         

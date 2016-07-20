@@ -1,11 +1,11 @@
 ﻿/// IO routines for loading the reference file format
 module sgdrefformat
-open Amyris
+open Amyris.Bio
 
 open sgd
 open utils
 open parseTypes
-open Amyris.SuffixTree
+open Amyris.Bio.SuffixTree
 open constants
 
 (*
@@ -64,7 +64,7 @@ type GenomeDef(p:string) as this = class
         let fastaPath = opj refDir (sprintf "%s.fsa" projName)
         suffixTreePath <- Some(opj refDir "suffixTree.st")
         
-        fasta <- Some(Amyris.biolib.readReference fastaPath)
+        fasta <- Some(Amyris.Bio.biolib.readReference fastaPath)
         feats <-  Some(sgd.loadFeatures featsPath)
         
         let i1 = feats.Value |> Array.mapi (fun i f -> f.sysName,i)

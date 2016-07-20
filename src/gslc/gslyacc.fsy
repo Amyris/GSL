@@ -3,7 +3,7 @@
 open System
 open parseTypes
 open pragmaTypes
-open Amyris
+open Amyris.Bio
 open constants
 // map aliases to parts
 let aliases = new Collections.Generic.Dictionary<string,GSLVar>()
@@ -252,7 +252,7 @@ CallParamList:
 
 
 DefParamList:
-    | ID { let i,_(*s*),e = $1 in [i] }
+    | ID { let i,_(*s*),_(*e*) = $1 in [i] }
 	| ID COMMA DefParamList { let i,_(*s*),_(*e*) = $1 in i::$3 }
 
 FunctionLine:
@@ -301,7 +301,7 @@ RID:
 RoughageLocus:
     | RID CARAT   { let i1,_(*s1*),_ = $1 in {locus = i1 ; marker = "" ; parts = [] } }  //  e.g. HO^
     | RID CARAT OPENSQBRACKET RID CLOSESQBRACKET {    let i1,_(*s1*),_ = $1 in
-                                                    let i2,_(*s2*),e2 = $4 in
+                                                    let i2,_(*s2*),_(*e2*) = $4 in
                                                     { locus = i1 ; marker = i2 ; parts = [] } } // e.g. HO^[mURA3LO]
 //[mURA3]
 RoughageMarkerMaybe:

@@ -12,15 +12,15 @@ open cloneManager
 open ape
 open l2expline
 open parseTypes
-open Amyris.utils
+open Amyris.Bio.utils
 open PrettyPrint
 open sgdrefformat
 open DnaCreation
 open alleleSwaps
-open Amyris.primercore
-open Amyris
-open Amyris.utils
-open Amyris.biolib
+open Amyris.Bio.primercore
+open Amyris.Bio
+open Amyris.Bio.utils
+open Amyris.Bio.biolib
 
 /// Check if tail of A overlaps head of B
 let checkTailAOverlapsHeadB (a:char array) (b:char array) =
@@ -246,17 +246,17 @@ let tuneTails
         let updateFwd (s:TuneState) =
             {s with bestFwdDelta =
                     if s.fb < 5 then 999.0<C>
-                    else dp.targetTm - (Amyris.primercore.temp dp.pp fwd.body s.fb) }
+                    else dp.targetTm - (Amyris.Bio.primercore.temp dp.pp fwd.body s.fb) }
 
         let updateRev (s:TuneState) =
             {s with bestRevDelta =
                     if s.rb < 5 then 999.0<C>
-                    else dp.targetTm - (Amyris.primercore.temp dp.pp rev.body s.rb) }
+                    else dp.targetTm - (Amyris.Bio.primercore.temp dp.pp rev.body s.rb) }
 
         let updateAnneal (s:TuneState) =
             {s with bestAnnealDelta =
                     annealTarget
-                  - (Amyris.primercore.temp
+                  - (Amyris.Bio.primercore.temp
                         dp.pp (fullTemplate.[X-s.ft+1..]) ((Y+s.rt-1)-(X-s.ft+1)+1))}
 
         /// Takes in a move (union case Tunestep) and updates the TuneState accordingly
@@ -445,10 +445,10 @@ let tuneTails
     //  <-----------------------------
     //  (----------------) Amp rev tmp
     //
-    //let startAnnealTm = Amyris.primercore.temp dp.pp fwd.tail fwd.tail.Length
+    //let startAnnealTm = Amyris.Bio.primercore.temp dp.pp fwd.tail fwd.tail.Length
     let startAnnealTm =
         if fwd.tail.Length = 0 || rev.tail.Length = 0 then annealTarget
-        else Amyris.primercore.temp
+        else Amyris.Bio.primercore.temp
                 dp.pp
                 (fullTemplate.[X-fwd.tail.Length+1..])
                 ((Y+rev.tail.Length-1)-(X-fwd.tail.Length+1)+1)
@@ -473,9 +473,9 @@ let tuneTails
 
     let rec trimIfNeeded (p:Primer) =
         if p.lenLE(dp.pp.maxLength) then p else
-        let ampTemp = Amyris.primercore.temp dp.pp p.body p.body.Length
+        let ampTemp = Amyris.Bio.primercore.temp dp.pp p.body p.body.Length
         let ampDelta = abs (ampTemp - dp.targetTm)
-        let annealTemp = Amyris.primercore.temp dp.pp p.tail p.tail.Length
+        let annealTemp = Amyris.Bio.primercore.temp dp.pp p.tail p.tail.Length
         let annealDelta = abs (annealTemp - dp.seamlessOverlapTm)
         if ampDelta < annealDelta && p.body.Length > dp.pp.minLength then
             trimIfNeeded { p with body = p.body.[..p.body.Length-2]}
@@ -491,8 +491,8 @@ let tuneTails
         fwd',rev'
     else
         // precalculate the fwd / rev body temps for reference
-        let fwdAmpTm = Amyris.primercore.temp dp.pp fwd.body fwd.body.Length
-        let revAmpTm = Amyris.primercore.temp dp.pp rev.body rev.body.Length
+        let fwdAmpTm = Amyris.Bio.primercore.temp dp.pp fwd.body fwd.body.Length
+        let revAmpTm = Amyris.Bio.primercore.temp dp.pp rev.body rev.body.Length
 
         // Start optimization of tail/body with full length tail and body for the original designed primers.
         // This may well be too long for the max oligo length but the tuneTailsOpt function will adjust till they are legal

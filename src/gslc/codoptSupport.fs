@@ -1,7 +1,7 @@
 ﻿module codoptSupport
 
-open Amyris.utils
-open Amyris
+open Amyris.Bio.utils
+open Amyris.Bio
 open sgdrefformat
                
 /// Given an amino acid sequence and codon frequency, pick a dumb optimal codon sequence using just the most frequent

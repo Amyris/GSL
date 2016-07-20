@@ -1,5 +1,5 @@
 ﻿module alleleSwapPluginDefs
-open Amyris
+open Amyris.Bio
 //open System
 open constants
 open parseTypes

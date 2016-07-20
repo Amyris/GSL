@@ -3,8 +3,8 @@ module primerDump
 open System.IO
 open parseTypes
 open commonTypes
-open Amyris.utils
-open Amyris.biolib
+open Amyris.Bio.utils
+open Amyris.Bio.biolib
 open System
 
 /// Dump out all the primers/primerparts to define the construct
@@ -42,7 +42,7 @@ let simplePrimerDump (file:string) (primers:DivergedPrimerPair list list) (assem
                                     yield ([| dpp.fwd.body |> revComp ; dpp.rev.body |] |> Array.concat |> arr2seq)
 
                                     // Emit primer pieces individually and Tms
-                                    let tm (a:char array) = Amyris.primercore.temp assembly.designParams.pp a a.Length |> fun t -> sprintf "%3.1f" (t*1.0/(1.0<Amyris.primercore.C>))
+                                    let tm (a:char array) = Amyris.Bio.primercore.temp assembly.designParams.pp a a.Length |> fun t -> sprintf "%3.1f" (t*1.0/(1.0<Amyris.Bio.primercore.C>))
 
                                     yield ( match dpp.fwd.Interval DNAIntervalType.ANNEAL with 
                                                         | Some(i) -> dpp.fwd.Primer.[i.il..i.ir] |> arr2seq

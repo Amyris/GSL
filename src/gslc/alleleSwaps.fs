@@ -3,7 +3,7 @@
 ///
 /// Support for introducing mutations into genes
 ///
-open Amyris
+open Amyris.Bio
 open System
 open constants
 open parseTypes

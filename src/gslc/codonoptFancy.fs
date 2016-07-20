@@ -1,8 +1,8 @@
 ﻿module codonoptFancy
 open System
 open System.Text.RegularExpressions
-open Amyris
-open Amyris.utils
+open Amyris.Bio
+open Amyris.Bio.utils
 open MathNet.Numerics.Random
 open System.Collections.Generic
 open System.IO
@@ -27,9 +27,9 @@ etc
 // -----------------------------------------------------------------------------------------------------
 // revTrans implementation of IDTHi like strategy
 //
-open Amyris.biolib
-open Amyris.IO.CodonUsage
-open Amyris.SuffixTree
+open Amyris.Bio.biolib
+open Amyris.Bio.IO.CodonUsage
+open Amyris.Bio.SuffixTree
 
 type PopScore = { score : float ; pos : int}
 type Chrom = {chrom : char array ; score : float ; problems : bool array}
@@ -90,7 +90,7 @@ let base2Idx c = match c with | 'A' -> 0 | 'T' -> 1 | 'C' -> 2 | 'G' ->3 | _ as 
 let load5Prime path =
     // Load raw nucleotide freqency data.  Should be A T C G header and frequency, one position per row
     let fivePrime = 
-        Amyris.grid.TabGrid(
+        Amyris.Bio.grid.TabGrid(
             File.ReadAllLines(path)
             |> Array.map (fun line -> 
                                 line.Split(
@@ -385,7 +385,7 @@ let doCodonOpt verbose (cop:CodonOptParams) (codoptData:CodonOptData) (localSeed
 
     //let s = best.chrom |> arr2seq
 
-    let trans = Amyris.biolib.translate best.chrom
+    let trans = Amyris.Bio.biolib.translate best.chrom
     for i in 0..3..best.chrom.Length-3 do
         let codon = best.chrom.[i..i+2] |> arr2seq
         assert (avoid.Contains(codon) |> not && cutFullPre.byCodon.ContainsKey(codon))

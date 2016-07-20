@@ -1,5 +1,5 @@
 ﻿module constants
-open Amyris.primercore
+open Amyris.Bio.primercore
 
 let ryseLinkerTargetDefault = 60.0<C> // melting temp for linker overhang melting temp
 let seamlessTargetDefault = 68.0<C> // higher temp for seamless junctions

@@ -1,5 +1,5 @@
 ﻿module sbolExample
-open Amyris.utils
+open Amyris.Bio.utils
 open FSharp.Data
 open uri
 

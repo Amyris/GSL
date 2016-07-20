@@ -7,7 +7,7 @@
 open pragmaTypes
 open parseTypes
 open commonTypes
-open Amyris
+open Amyris.Bio
 open constants
 open sgdrefformat
 open System.Text

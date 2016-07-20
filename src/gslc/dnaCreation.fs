@@ -1,7 +1,7 @@
 ﻿module DnaCreation
 open System
 open shared // common routines used in several modules
-open Amyris.biolib
+open Amyris.Bio.biolib
 open constants
 open thumper // Thumper output formats, dumping etc
 open ryse    // RYSE architecture
@@ -9,14 +9,14 @@ open cloneManager
 open ape
 open l2expline
 open parseTypes
-open Amyris.utils
+open Amyris.Bio.utils
 open PrettyPrint
 open sgdrefformat
 open pragmaTypes
 open commonTypes
 open applySlices
 open thumperProxyTypes
-open Amyris
+open Amyris.Bio
 
 // flag_new_gsl 8/12/15 ---  top  (paired with bottom)
 

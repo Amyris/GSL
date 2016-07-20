@@ -3,7 +3,7 @@ open System
 open parseTypes
 open pragmaTypes
 open constants
-open Amyris.primercore
+open Amyris.Bio.primercore
 type Platform = MegaStitch | NoPlatform
 open thumperProxyTypes
 open uri

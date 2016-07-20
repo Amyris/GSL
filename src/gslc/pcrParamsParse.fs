@@ -1,6 +1,6 @@
 ﻿module pcrParamsParse
 open System
-open Amyris.primercore
+open Amyris.Bio.primercore
 open System.Text.RegularExpressions
 
 /// Handle parsing of PCR parameters
@@ -29,9 +29,9 @@ let parse (p:PrimerParams) (line:string) =
                                     failwithf "ERROR: parsing floating point value '%s' in #pcrparams" (hd.Groups.[2].Value)
                     let v' =  // Converted to Molar
                         match hd.Groups.[3].Value with
-                            | "um" -> v*1.0<uM> |> Amyris.primercore.uM2M
-                            | "mm" -> v*1.0<mM> |> Amyris.primercore.mM2M
-                            | "nm" -> v*1.0<nM> |> Amyris.primercore.nM2M
+                            | "um" -> v*1.0<uM> |> Amyris.Bio.primercore.uM2M
+                            | "mm" -> v*1.0<mM> |> Amyris.Bio.primercore.mM2M
+                            | "nm" -> v*1.0<nM> |> Amyris.Bio.primercore.nM2M
                             | _ -> failwithf "inconceivable"
 
                     match hd.Groups.[1].Value with

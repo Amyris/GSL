@@ -5,7 +5,7 @@ open constants
 open commonTypes
 open parseTypes
 open pcrParamsParse
-open Amyris.primercore // For definition of unit C
+open Amyris.Bio.primercore // For definition of unit C
 
 /// Starting conditions for certain pragma states
 let initialPragmas = EmptyPragmas

@@ -1,5 +1,5 @@
 ﻿module markers
-open Amyris.utils
+open Amyris.Bio.utils
 open System.IO
 
 /// Logic for reading in marker sets that support the ### virtual part

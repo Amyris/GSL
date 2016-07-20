@@ -4,7 +4,7 @@
 open parseTypes
 open commonTypes
 open constants
-open Amyris.utils
+open Amyris.Bio.utils
 
 /// Print an integer id that might not be assigned yet 
 let ambId (i :int option) = match i with None -> "?" | Some(i) -> string(i)

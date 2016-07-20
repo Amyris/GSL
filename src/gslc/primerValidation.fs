@@ -2,8 +2,8 @@
 
 open commonTypes
 open parseTypes
-open Amyris.utils
-open Amyris.biolib
+open Amyris.Bio.utils
+open Amyris.Bio.biolib
 
 
 let checkAnnotation (p:Primer) errorDesc =
@@ -40,7 +40,7 @@ let checkPrimers (primers : DivergedPrimerPair list list) =
                             f.il f.ir r.il r.ir
                     let s1 = dpp.fwd.Primer.[f.il..f.ir]
                     let s2 = dpp.rev.Primer.[r.il..r.ir]
-                    let s2' = Amyris.biolib.revComp s2
+                    let s2' = Amyris.Bio.biolib.revComp s2
 
                     if s1 <> s2' then
                         failwithf

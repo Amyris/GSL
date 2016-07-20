@@ -9,7 +9,7 @@ open Microsoft.FSharp.Text.Parsing.ParseHelpers
 open System
 open parseTypes
 open pragmaTypes
-open Amyris
+open Amyris.Bio
 open constants
 // map aliases to parts
 let aliases = new Collections.Generic.Dictionary<string,GSLVar>()
@@ -1428,7 +1428,7 @@ let _fsyacc_reductions ()  =    [|
                 (
                    (
 # 255 "gslyacc.fsy"
-                                let i,_(*s*),e = _1 in [i] 
+                                let i,_(*s*),_(*e*) = _1 in [i] 
                    )
 # 255 "gslyacc.fsy"
                  : 'DefParamList));
@@ -1642,7 +1642,7 @@ let _fsyacc_reductions ()  =    [|
                    (
 # 303 "gslyacc.fsy"
                                                                            let i1,_(*s1*),_ = _1 in
-                                                                         let i2,_(*s2*),e2 = _4 in
+                                                                         let i2,_(*s2*),_(*e2*) = _4 in
                                                                          { locus = i1 ; marker = i2 ; parts = [] } 
                    )
 # 303 "gslyacc.fsy"

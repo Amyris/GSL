@@ -2,9 +2,9 @@
 open commandConfig // Command line arguments, defaults, etc
 open gslcProcess // Top-level compiler operations
 
-// Helper libs for oligo design, sequence parsing all in Amyris.dll
+// Helper libs for oligo design, sequence parsing all in Amyris.Bio.dll
 // These imports are only needed for the temporary primer test function below.
-open Amyris
+open Amyris.Bio
 open primercore
 open utils
 open constants
@@ -14,7 +14,7 @@ let testPrimer() =
     let template = "GCCAGCGATAGGAGTCCTTGGTTTAG".ToCharArray()
 
     for i in {15..26} do
-        printfn "%d %A" i (Amyris.primercore.temp defaultParams template i)
+        printfn "%d %A" i (Amyris.Bio.primercore.temp defaultParams template i)
 
     let fwd = true
     let pen = { primercore.defaultParams with maxLength = 30 ; tmPenalty = 3.0(* template.Length *)}

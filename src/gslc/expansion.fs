@@ -11,7 +11,7 @@ open cloneManager
 open ape
 open l2expline
 open parseTypes
-open Amyris.utils
+open Amyris.Bio.utils
 open PrettyPrint
 open sgdrefformat
 open DnaCreation
@@ -317,7 +317,7 @@ let expandMut
 
                 let codonUsage =
                     codonTableCache.Get(rg',refGenome)
-                    |> fun cod -> Amyris.IO.CodonUsage.prepCUT 0.0 100 cod.freq
+                    |> fun cod -> Amyris.Bio.IO.CodonUsage.prepCUT 0.0 100 cod.freq
                 
                 let endPref =
                     match p.pr.TryGetOne("swapend") with
@@ -391,7 +391,7 @@ let expandHB verbose (codonTableCache:plugins.CodonTableCache) (rgs:GenomeDefs) 
         let rg = rgs.[refGenome]
         let codonUsage =
             codonTableCache.Get(rg,refGenome)
-            |> fun cod -> Amyris.IO.CodonUsage.prepCUT 0.0 100 cod.freq
+            |> fun cod -> Amyris.Bio.IO.CodonUsage.prepCUT 0.0 100 cod.freq
 
         match p with
         // Lone heterology block with no inlined sequence adjacent

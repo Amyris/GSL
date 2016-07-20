@@ -5,8 +5,8 @@ open System.Xml
 open pragmaTypes
 open parseTypes
 open commonTypes
-open Amyris.utils
-open Amyris.biolib
+open Amyris.Bio.utils
+open Amyris.Bio.biolib
 open shared
 open System.Collections.Generic
 open constants

@@ -2,8 +2,8 @@
 open System.IO
 open commonTypes
 open parseTypes
-open Amyris.utils
-open Amyris.biolib
+open Amyris.Bio.utils
+open Amyris.Bio.biolib
 open shared
 open constants
 

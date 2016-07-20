@@ -3,8 +3,8 @@ module commandConfig
 open System
 open commonTypes
 open pragmaTypes
-open Amyris.utils
-open version
+open Amyris.Bio.utils
+open semversion
 
 let version = sprintf "%d.%d.%d" versionMajor versionMinor versionPatch
 

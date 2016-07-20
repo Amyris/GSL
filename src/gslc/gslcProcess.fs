@@ -26,8 +26,8 @@ open DnaCreation
 open PrimerCreation
 open dumpFlat
 
-// Helper libs for oligo design, sequence parsing all in Amyris.dll
-open Amyris
+// Helper libs for oligo design, sequence parsing all in Amyris.Bio.dll
+open Amyris.Bio
 open utils
 
 /// Starting design parameters for construction
@@ -52,7 +52,7 @@ let loadGlobalAssets (opts:ParsedOptions) =
     // Crude sequence library for misc pieces
     let library =
         if File.Exists lib then
-            Amyris.biolib.readReference lib
+            Amyris.Bio.biolib.readReference lib
             |> Seq.map (fun kv -> (kv.Key.ToUpper(),kv.Value))
             |> Map.ofSeq
         else Map.empty
@@ -64,7 +64,7 @@ let loadGlobalAssets (opts:ParsedOptions) =
 
     let availRefs =
         Directory.EnumerateDirectories(opts.libDir)
-        |> Seq.map (Amyris.utils.baseName) |> List.ofSeq
+        |> Seq.map (Amyris.Bio.utils.baseName) |> List.ofSeq
     if opts.verbose then printfn "availrefs=%A" availRefs
 
     let rgs =

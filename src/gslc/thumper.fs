@@ -1,7 +1,7 @@
 ﻿module thumper
 open System.IO
-open Amyris.utils
-open Amyris.biolib
+open Amyris.Bio.utils
+open Amyris.Bio.biolib
 open commonTypes
 open parseTypes
 open pragmaTypes
