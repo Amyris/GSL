@@ -2,10 +2,10 @@ source https://nuget.org/api/v2
 
 nuget FSharp.Core redirects: force
 nuget Amyris.Bio
-nuget FsLexYacc.Runtime
 
 group Build
   source https://nuget.org/api/v2
+  nuget FsLexYacc.Runtime
   nuget FSharp.Data
   nuget FsLexYacc
   nuget MathNet.Numerics

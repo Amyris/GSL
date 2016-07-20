@@ -2,7 +2,6 @@ NUGET
   remote: https://www.nuget.org/api/v2
     Amyris.Bio (2.0.3)
     FSharp.Core (4.0.0.1) - redirects: force
-    FsLexYacc.Runtime (6.1)
 
 GROUP Build
 NUGET
@@ -272,7 +271,7 @@ NUGET
 GITHUB
   remote: fsharp/FAKE
     modules/Octokit/Octokit.fsx (094228d817b5bdb97f896a7d4a994d31e66be529)
-      Octokit
+      Octokit (>= 0.20)
 GROUP Test
 NUGET
   remote: https://www.nuget.org/api/v2

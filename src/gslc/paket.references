@@ -1,3 +1,6 @@
 FSharp.Core
-FsLexYacc.Runtime
 Amyris.Bio
+group Build
+  FsLexYacc.Runtime
+  MathNet.Numerics
+  Newtonsoft.Json  
