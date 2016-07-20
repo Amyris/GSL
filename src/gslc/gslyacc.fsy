@@ -1,0 +1,406 @@
+%{
+// F# code goes here
+open System
+open parseTypes
+open pragmaTypes
+open Amyris
+open constants
+// map aliases to parts
+let aliases = new Collections.Generic.Dictionary<string,GSLVar>()
+
+// Fold new list of key value pairs into pragmas field of a part
+let addPragmas (p:PPP) (newPragmas:Pragma list) =
+    let mergedPragmas = p.pr.MergeIn(newPragmas)
+    {p with pr = mergedPragmas}
+
+let varRE = System.Text.RegularExpressions.Regex("@[A-Za-z_][A-Za-z0-9_]*")
+let aliasReplaceIn (aliases:Collections.Generic.Dictionary<string,GSLVar>) (s:string) =
+    let rec replaceOne (vars:string list) (currentString:string) =
+        match vars with
+            | [] -> currentString
+            | hd::tl ->
+                // Depending on what type of variable we have, we might format differently,
+                // so handle different cases
+                let value =
+                    match aliases.TryGetValue(hd.Substring(1)) with
+                    | true,v -> match v with
+                                | GSLV_STR s -> s.i
+                                | GSLV_FLOAT f -> string f
+                                | GSLV_INT i -> string i
+                                | GSLV_PPP ppp ->
+                                    match ppp.part with
+                                        | GENEPART(gp) -> gp.part.gene
+                                        | _  -> failwithf "ERROR: unsupported variable substitution for part %A" ppp.part
+                                | _ as x ->
+                                    failwithf "ERROR: unsupported variable substitution name=%s value=%A" hd x
+                    | _ ->
+                        failwithf "Reference to variable '%s' not found in '%s'" (hd.Substring(1)) s
+                replaceOne tl (currentString.Replace(hd,value))
+    replaceOne [for hit in varRE.Matches(s) -> hit.Value] s
+
+%}
+
+
+%start start // parser function
+%token <string*Position*Position> ID
+%token <int>    INT
+%token <IDLoc> STRING
+%token <IDLoc> DOCSTRING
+%token <IDLoc> QUOTED_STRING
+%token <string> LINKER
+%token <string> AAMUTATION
+%token <string> DNAMUTATION
+%token <string> ERROR
+%token <string> PVALUE
+%token <string> PNAME
+%token HYPHEN TILDE OPENSQBRACKET DOLLAR CLOSESQBRACKET SEMICOLON
+%token COLON STAR SLASH AT LBRACE RBRACE EXCLM EQUALS CARAT COMMA
+%token LET CUT DEF END OPEN FOR IN DO
+%token START_ROUGHAGE END_ROUGHAGE GREATERTHAN LESSTHAN DOT
+%token DOUBLEQUOTE
+%token MARKER
+%token NEWLINE EOF
+
+// arithmetic expression tokens
+%token LPAREN RPAREN PLUS  // multiply = STAR, minus = HYPHEN, divide = SLASH
+%left PLUS HYPHEN
+%left STAR SLASH
+
+// What the parser will finally produce
+%type <GSLLine list> start
+
+// Start of grammar
+
+%%
+
+start: Final { $1 }
+
+Final:
+    | LineList EOF                 { List.rev $1} // Collection of assemblies
+    | EOF                               { []} // Empty gsl file
+
+
+HetBlock: TILDE                     { HETBLOCK }
+
+cExp:
+    | INT                   { $1 }
+    | AT ID                 { let i,_(*s*),_(*e*) = $2 in
+                              match aliases.TryGetValue(i) with
+                                  | true,v ->
+                                        match v with
+                                            | GSLV_INT anInt -> anInt
+                                            | _ as x -> failwithf "ERROR: variable %A ( is not an int) in variable %s" x i
+                                  | _ -> failwithf "ERROR: unable to find variable %s" i
+                            }
+    | cExp PLUS cExp        { $1 + $3 }
+    | cExp HYPHEN cExp      { $1 - $3 }
+    | cExp STAR cExp        { $1 * $3 }
+    | cExp SLASH cExp       { $1 / $3 }
+    | HYPHEN cExp %prec HYPHEN { - $2 }
+    | LPAREN cExp RPAREN    { $2 }
+
+RelPos1:
+    | cExp {  {x = $1 * 1<OneOffset> ; relTo = FIVEPRIME } }
+    | cExp ID { let i,_(*s*),_(*e*) = $2 in
+                let i' = i.ToUpper() in
+                match i' with | "S" -> { x= $1*1<OneOffset> ; relTo = FIVEPRIME}
+                              | "E" -> { x= $1*1<OneOffset> ; relTo = THREEPRIME}
+                              | "A" | "AS" | "SA" -> if $1 > 0 then { x = $1*3<OneOffset> - 2<OneOffset> ; relTo = FIVEPRIME } else failwithf "ERROR: Cannot begin with a negative amino acid offset"
+                              | "AE" | "EA" -> if $1 > 0 then { x = $1*3<OneOffset> - 2<OneOffset> ; relTo = THREEPRIME } else { x = $1*3<OneOffset> ; relTo = THREEPRIME }
+                              | _ -> failwithf "ERROR: relative position should be int,(a),(s/e)"
+             }
+
+RelPos2:
+    | cExp {  {x = $1 * 1<OneOffset> ; relTo = FIVEPRIME } }
+    | cExp ID {  let i,_(*s*),_(*e*) = $2 in
+                let i' = i.ToUpper() in
+                match i' with | "S" -> { x= $1*1<OneOffset> ; relTo = FIVEPRIME}
+                              | "E" -> { x= $1*1<OneOffset> ; relTo = THREEPRIME}
+                              | "A" | "AS" -> if $1 > 0 then { x= $1*3<OneOffset> ; relTo = FIVEPRIME }
+                                              else failwithf "ERROR: Cannot offset negative amino acids from start"
+                              | "AE" -> if $1 > 0 then
+                                            { x= $1*3<OneOffset> ; relTo = THREEPRIME }
+                                        else { x = $1*3<OneOffset> + 2<OneOffset> ; relTo = THREEPRIME }
+                              | _ -> failwithf "ERROR: relative position should be int,(a),(s/e)"
+             }
+
+Slice: // Slice ranges of form  [ a : b] where a or b may be qualified with ~ to be approximate
+    | OPENSQBRACKET RelPos1 COLON RelPos2 CLOSESQBRACKET { {left = $2 ; right = $4 ; lApprox = false; rApprox=false } }
+    | OPENSQBRACKET TILDE RelPos1 COLON RelPos2 CLOSESQBRACKET { {left = $3 ; right = $5 ; lApprox = true; rApprox=false} }
+    | OPENSQBRACKET RelPos1 COLON TILDE RelPos2 CLOSESQBRACKET { {left = $2 ; right = $5 ; lApprox = false; rApprox=true} }
+    | OPENSQBRACKET TILDE RelPos1 COLON TILDE RelPos2 CLOSESQBRACKET { {left = $3 ; right = $6; lApprox = true; rApprox=true } }
+
+
+// STAR is a DNA mutation,  DOLLAR for amino acid replacements,  need to worry about stop codons too
+Mutation:
+    | DNAMUTATION              { { f = $1.[1] ; t = $1.[$1.Length-1]; pos = Convert.ToInt32($1.[2..$1.Length-2]) ; mType = NT} }
+    | AAMUTATION             { { f = $1.[1] ; t = $1.[$1.Length-1]; pos = Convert.ToInt32($1.[2..$1.Length-2]) ; mType = AA} }
+
+Mod:
+    | Mutation                      { MUTATION($1) }
+    | Slice                         { SLICE($1) }
+	| DOT ID						{ let i,s,e = $2 in DOTMOD({i=i;s=s;e=e}) }
+
+ModList:
+    | Mod                           { [ $1 ] }
+    | ModList Mod                   { $2 :: $1 }
+
+Linker: LINKER                      { match $1.Split([| '-' |]) with
+                                        | [| a;b;c |] -> {l1 = a ; l2 = b; orient = c}
+                                        | _ -> failwithf "ERROR: bad linker format '%s'\n" ($1)
+                                    }
+SubPart:
+    | ID                            { let i,s,e = $1 in { gene=i ; mods = [] ; where = { sp = s ; ep = e} } }
+    | ID ModList                    { let i,s,e = $1 in { gene=i ; mods = List.rev $2 ;  where = { sp = s ; ep = e } } }
+
+/// NB: returns PPP rather than just Part because aliases might already have a pragma embedded
+Part:                               // returns Part
+    | LPAREN Assembly RPAREN        {  match $2 with | ASSEMBLY(a) ->
+                                                        {part = MULTIPART(a.parts) ; pr = EmptyPragmas ; fwd = true}
+                                                     | _ -> failwithf "ERROR: unexpected non Assembly type %A in Part grammar rule" $2
+                                    }
+    | Linker HYPHEN SubPart         {  {part = GENEPART ( { part = $3; linker = Some($1) } ) ; pr = EmptyPragmas ; fwd=true} }
+    | SubPart                       {  {part = GENEPART ( { part = $1; linker = None } ) ; pr = EmptyPragmas ; fwd=true}}
+    | MARKER                        {  {part = MARKERPART ; pr = EmptyPragmas ; fwd=true}} // Selectable marker
+    | SLASH ID SLASH                {  let i,_(*s*),_(*e*) = $2 in {part = INLINEDNA(i.ToUpper()) ; pr = EmptyPragmas ; fwd=true }}  // Inline DNA sequence  / gatca /
+    | SLASH DOLLAR ID SLASH         {  let i,_(*s*),_(*e*) = $3 in {part = INLINEPROT(i.ToUpper()) ; pr = EmptyPragmas ; fwd=true} }  // Inline amino acid sequence  / ACDEFGH etc /
+    | SLASH DOLLAR ID STAR SLASH    {  let i,_(*s*),_(*e*) = $3 in {part = INLINEPROT(i.ToUpper()+"*") ; pr = EmptyPragmas ; fwd=true} }  // Inline amino acid sequence with stop / ACDEFGH* etc /
+    | SLASH DOLLAR STAR SLASH        {  {part = INLINEPROT("*") ; pr = EmptyPragmas ; fwd=true} }  // Simple inline stop codon
+    | HetBlock                      {  {part= $1 ; pr = EmptyPragmas ; fwd=true} } // ~
+    | AT ID                            { let i,s,e = $2 in
+                                      let isAlias, res = aliases.TryGetValue i in
+                                      if isAlias then
+                                        match res with
+                                            | GSLV_PPP(r) -> r
+                                            | GSLV_ASSEM(a) -> // a is a PPP list
+                                                    let part = MULTIPART(a) in // Create multipart from PPP list
+                                                    let x = { part=part; pr= EmptyPragmas ; fwd = true} in  // Create a single PPP with a multipart inside
+                                                    x
+                                            | _ -> failwithf "ERROR: unsupported gsl variable %A in @id expression" res
+                                      else
+                                        {part = PARTID({ id = i ; s = s ; e = e ; mods= []}) ; pr = EmptyPragmas ; fwd=true} }   // @r1234 reference to existing part
+
+    | AT ID ModList                    { let i,s,e = $2 in let modList = $3 in stuffModList i s e modList aliases }
+
+PragmaValues:
+	| PVALUE PragmaValues { (aliasReplaceIn aliases $1)::$2 }
+	| PVALUE {[(aliasReplaceIn aliases $1)]}
+
+Pragma:
+	| PNAME PragmaValues { (buildPragma $1 $2) }
+	| PNAME { (buildPragma $1 []) }
+
+Pragmas:
+	|  Pragma {[$1]}
+	|  Pragma Pragmas { $1::$2}
+
+InlinePragmas:
+	| LBRACE Pragmas RBRACE {$2}
+	| LBRACE Pragmas RBRACE InlinePragmas { $2@$4 }
+
+/// Generates PPP
+PartMaybePragma: // User can place an inline {#foo bar ; #cat dog} style pragma after a part to specify options allow for that here
+	| Part InlinePragmas       { addPragmas $1 $2 }
+    | Part                            { $1 }
+
+PartFwdRev:    // User can specify a part forward or ! for reverse
+    | PartMaybePragma { $1 }
+    | EXCLM PartMaybePragma { { $2 with fwd = false} }
+
+PartList:
+    | PartFwdRev                          { [$1] }
+    | PartList SEMICOLON PartFwdRev       { $3::$1 }
+    | PartList SEMICOLON NEWLINE          { {part = ERRORPART({message = "Expected part after semicolon" ; s = parseState.InputStartPosition 3 ; e = parseState.InputEndPosition 3}) ; pr=EmptyPragmas ; fwd = true}::$1 }
+
+
+Assembly:
+    | PartList NEWLINE              { ASSEMBLY({ parts = List.rev $1 ; name = None ; uri = None; linkerHint = "" ; docStrings = [] ; pragmas=EmptyPragmas ; capabilities = Set.empty ; designParams = { targetTm = ryseLinkerTargetDefault ; seamlessTm = seamlessTargetDefault ; seamlessOverlapTm = seamlessOverlapTargetDefault;  pp = primercore.defaultParams; overlapParams = primercore.defaultParams ; overlapMinLen=overlapMinLenDefault} }) }
+    | PartList                      { ASSEMBLY({ parts = List.rev $1; name = None ; uri = None; linkerHint = "" ; docStrings = [] ; pragmas=EmptyPragmas ; capabilities = Set.empty ; designParams = { targetTm = ryseLinkerTargetDefault ; seamlessTm = seamlessTargetDefault  ; seamlessOverlapTm = seamlessOverlapTargetDefault; pp = primercore.defaultParams ; overlapParams = primercore.defaultParams ; overlapMinLen=overlapMinLenDefault} })  }
+
+// Section of /// quoted docstrings
+DocstringSection:
+    | DOCSTRING                     { [$1] }
+	| DOCSTRING DocstringSection    { $1::$2 }
+
+GSLVarsCommaSep:
+	| GSLVar COMMA GSLVarsCommaSep { $1::$3}
+	| GSLVar CLOSESQBRACKET {[$1]}
+	| CLOSESQBRACKET {[]}
+
+// LET ID = part list
+// LET ID = 20
+// let foo = 2.0
+// let bar = "string example"
+// generates no result but updates the aliases map
+AliasLine:
+	| LET ID EQUALS GSLVar { let i,_(*s*),_(*e*) = $2 in (if (not ( aliases.ContainsKey(i))) then (aliases.Add(i,$4) |> ignore) else ((aliases.Remove(i) |> ignore); aliases.Add(i,$4) |> ignore) );
+                                      LETLINE({ varName=i ; letDefinition = $4}) } // return LETLINE instead of dummy pragma line
+
+//
+GSLVar:
+	| PartFwdRev       { GSLV_PPP($1)} // type of GSLVar
+	| Assembly         { match $1 with | ASSEMBLY(a) -> (match a.parts with | [single] -> GSLV_PPP(single) | _ -> GSLV_ASSEM(a.parts)) | _ -> failwithf "ERROR: bad assembly unpack"} // type of GSLVar
+	//| cExp              { GSLV_INT($1)} // type of GSLVar - integer result
+	| INT              { GSLV_INT($1)} // type of GSLVar
+	| STRING           { GSLV_STR($1)} //
+	| INT DOT INT	   { GSLV_FLOAT(sprintf "%d.%d" $1 $3 |> float)} // float GSLVar
+	| OPENSQBRACKET GSLVarsCommaSep    { GSLV_LIST($2)}
+
+CallParamList:
+	| PartFwdRev                          { [$1] }
+    | PartFwdRev COMMA CallParamList      { $1::$3 }
+
+
+DefParamList:
+    | ID { let i,_(*s*),e = $1 in [i] }
+	| ID COMMA DefParamList { let i,_(*s*),_(*e*) = $1 in i::$3 }
+
+FunctionLine:
+    | LET ID LPAREN DefParamList RPAREN EQUALS LineList END { let i,_(*s*),_(*e*) = $2 in GSLFUNCTION({ name = i; args = $4; body = List.rev $7 ; pragmas=EmptyPragmas})}
+
+FunctionCallLine:
+	| ID LPAREN CallParamList RPAREN { let i,_(*s*),_ = $1 in GSLFUNCTIONCALL({name = i; args = $3 })}
+
+
+OpenLine: // Open external definition file  e.g. open mydesigns
+	| OPEN ID { let i,_(*s*),_ = $2 in OPENLINE( { modulePath= i ; pragmas = EmptyPragmas} )}
+
+ForLine:
+	| FOR ID IN ItemList DO LineList END { let i,_(*s*),_e = $2 in FORBLOCK( { varName = i ; items =$4 ; body = $6 ; pragmas = EmptyPragmas }) }
+
+IntList: // Generates a list of ints that needs reversing
+	| INT	{ [ INTMEMBER(int $1) ] }  // 123
+	| INT DOT DOT INT { [ INTRANGE(int $1,int $4) ]} // 120..130
+	| INT DOT DOT INT  COMMA IntList { INTRANGE(int $1,int $4)::$6} // 120..130,
+	| INT COMMA IntList { (INTMEMBER(int $1))::$3 }   // 123,
+
+PartItemList: // Generates a list of Parts that needs reversing
+	| Part { [$1] }
+	| Part COMMA PartItemList { $1::$3 }
+
+ItemList:
+	| OPENSQBRACKET IntList CLOSESQBRACKET { INTLIST (List.rev $2) }     ///  [ 1 ; 7 ; 51 ; 86 ]
+	| OPENSQBRACKET PartItemList CLOSESQBRACKET { PARTLIST(List.rev $2) }   ///  [pTDH3 ; pFBA1 ; pGAL1 ; pGAL10 ]
+
+/// cut pFoo[1:~200E] ; /ATCGTAGT/ ; mBAR
+CutLine:
+    | CUT Assembly { CUTLine({assembly=$2 ; pragmas = EmptyPragmas}) }
+
+
+//
+// Inline roughage
+//===================================
+
+// gene name
+RID:
+    | ID  {$1}
+    | ID DOT ID { let i1,s1,_(*e_1*) = $1 in
+                        let i2,_(*s2*),e2 = $3 in
+                        (sprintf "%s.%s" i1 i2),s1,e2 }
+// foo^
+RoughageLocus:
+    | RID CARAT   { let i1,_(*s1*),_ = $1 in {locus = i1 ; marker = "" ; parts = [] } }  //  e.g. HO^
+    | RID CARAT OPENSQBRACKET RID CLOSESQBRACKET {    let i1,_(*s1*),_ = $1 in
+                                                    let i2,_(*s2*),e2 = $4 in
+                                                    { locus = i1 ; marker = i2 ; parts = [] } } // e.g. HO^[mURA3LO]
+//[mURA3]
+RoughageMarkerMaybe:
+    | OPENSQBRACKET RID CLOSESQBRACKET { let i1,_(*s1*),_ = $2 in Some(i1) }
+    | { None }
+
+// pFoo>Bar[mURA3]
+// Bar<pFoo-pCat>Dog
+RoughageElement:
+    | RID GREATERTHAN RID RoughageMarkerMaybe {    let i1,s1,_ = $1 in
+                                                let i2,_(*s2*),e2 = $3 in
+                                                { promoter1 = i1 ; target1 = i2 ; promoter2=""; target2 = "" ; bi = false ; marker = $4 ; left = s1 ; right = e2}} // pGAL7>ERG12
+
+    | RID LESSTHAN RID HYPHEN RID GREATERTHAN RID RoughageMarkerMaybe { let i1,s1,_ = $1 in
+                                                                        let i2,_(*s2*),_ = $3 in
+                                                                        let i3,_(*s3*),_ = $5 in
+                                                                        let i4,_(*s4*),e4 = $7 in
+                                                                        {promoter1 = i2 ; target1 = i1 ; promoter2 = i3 ; target2 = i4 ; bi = true; marker = $8 ; left = s1 ; right=e4}} // ALD6<pTAD2-pKAR2>ACS2
+
+RoughageElementList:
+    | RoughageElement { [$1] }
+    | RoughageElement COLON COLON RoughageElementList { $1::$4 }
+
+RoughageLine:
+    | RoughageLocus        { $1 } //  HO^
+    | RoughageLocus COLON COLON RoughageElementList {  { $1 with parts = $4} } // HO^::pABC1>DEF2..
+    | RoughageElementList  { { locus="" ; marker = "" ; parts = $1 } } //  pABC1>DEF2..
+
+RoughageLineList:
+    | RoughageLine                    { [$1] }
+    | NEWLINE RoughageLineList        { $2 } // handle blank lines
+    | NEWLINE                       { [] }
+    | RoughageLine RoughageLineList            { $1::$2 }
+
+//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+// ===================== L2 Constructs ==================================
+//
+// Basic GSL Level2 constructs - roughage inspired, keeping with GSL syntax
+
+// gene name
+L2IdWrap:
+    | ID    { let i1,s1,e1 = $1  in { i = i1 ; s = s1 ; e = e1 } }
+    | STRING { $1 }
+
+// A level2 id can have an optional prefix and the ID parts can be specified
+// as strings if that makes things easier for the user.   E.g. "gfoo bar"."!!! :) my really cool part"
+// Question - what to do about gene prefixes.  e.g. g"my cool part"  or "gmy cool part".  Former looks
+// better / cleaner but has grammatical consequences
+
+// Type = L2Id
+L2Id:
+
+    | L2IdWrap  { {prefix = None ; id = $1}   }
+    | L2IdWrap DOT L2IdWrap { { prefix = Some($1) ; id = $3 } }
+
+// foo^
+L2Locus:
+    | L2Id CARAT   { {l2Locus = Some($1) ; parts = [] } }  //  e.g. HO^
+
+
+// pFoo>Bar - create an L2Elem type
+L2ExpElement:
+    | L2Id GREATERTHAN L2Id {   { promoter = $1 ; target = $3 ; s = $1.id.s ; e = $3.id.e}} // pGAL7>ERG12
+
+// List of semicolon separated expression elements
+L2ExpElementList:
+    | L2ExpElement { [$1] }
+    | L2ExpElement SEMICOLON L2ExpElementList { $1::$3 }
+
+// L2 expression line.  Optional locus knockout followed by over expression constructs
+L2ExpLine:
+    | L2Locus        { $1 } //  HO^  - simple locus only
+    | L2Locus SEMICOLON L2ExpElementList {  { $1 with parts = $3} } // HO^ ; pABC1>DEF2..
+    | L2ExpElementList  { { l2Locus= None ; parts = $1 } } //  pABC1>DEF2..
+
+
+// Top level 2 construct.  Wraps different types of L2 expressions.
+L2:
+    | L2ExpLine     { L2( { l2Design = L2EXPLINE($1) ; name = None ; uri = None; pragmas = EmptyPragmas ; capabilities = Set.empty} ) }
+    // Reserved for other types of L2 syntax in the future
+
+
+// Main line dispatch
+Line:
+    | Assembly                       { $1 }
+	| DocstringSection               { DOCSTRINGSECTION($1 |>List.rev) }
+	| L2						     { $1 }
+    | START_ROUGHAGE RoughageLineList END_ROUGHAGE  {  ROUGHAGESECTION( $2) }
+    | Pragma NEWLINE                 { PRAGMA($1) }
+    | AliasLine                      { $1 }
+    | FunctionLine                   { $1 }
+	| FunctionCallLine				 { $1 }
+    | CutLine                        { $1 }
+    | ForLine                        { $1 }
+    | OpenLine                       { $1 }
+
+LineList:
+    | Line                            { [$1] }
+    | NEWLINE                       { [] }
+    | NEWLINE LineList                { $2 } // handle blank lines
+    | Line LineList                    { $2@[$1] }

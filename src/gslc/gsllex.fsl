@@ -1,0 +1,153 @@
+﻿{
+module GSLLexer
+open System
+open GSLParser
+open parseTypes
+open Microsoft.FSharp.Text.Lexing
+
+let lexeme = LexBuffer<_>.LexemeString
+
+/// Global currently running tokenizer.
+/// Initialized at the bottom of this module.
+let mutable currentTokenizer =
+    let uninitialized (_:LexBuffer<_>): token =
+        failwith "currentTokenizer was not initialized!"
+    uninitialized
+
+/// Set which tokenizer is currently being used.
+let setTokenizer tokenizer = currentTokenizer <- tokenizer
+
+let newline (lexbuf:LexBuffer<_>) =
+    lexbuf.EndPos <- lexbuf.EndPos.NextLine
+}
+
+let num = ['0'-'9']+
+let intNum = '-'? num
+let ident = ['a'-'z' 'A'-'Z']['a'-'z' 'A'-'Z' '0'-'9' '_']*
+let pval = [^ ';' '#' '}' ' ' '\t' '\n' '\r'][^ ';' '}' ' ' '\t' '\n' '\r']*
+let pvalAllowSemicolons = [^ '#' '}' ' ' '\t' '\n' '\r'][^ '}' ' ' '\t' '\n' '\r']*
+let whitespace = ' ' | '\t'
+let newline = '\n' | '\r' '\n' | '\r'
+let pname =  '#'['a'-'z' 'A'-'Z']['a'-'z' 'A'-'Z' '0'-'9' '_']*
+let aa = 'A'|'C'|'D'|'E'|'F'|'G'|'H'|'I'|'K'|'L'|'M'|'N'|'P'|'Q'|'R'|'S'|'T'|'V'|'W'|'Y'|'*'  // Amino acids
+let dna = 'A' | 'T' | 'C' | 'G' | 'a' | 't' | 'c' | 'g'
+let linker = ['0'-'9' 'A'-'Z']
+let string = "[^\"]*"  // Quoted strings
+
+rule main = parse
+    | num { INT(Convert.ToInt32(lexeme lexbuf)) }
+    | linker '-' linker '-' ['0' '1'] { LINKER(lexeme lexbuf) }
+    | "let" { LET } // let foo = bar  alias definition
+    | "cut" { CUT } // cut <expression>  nucleases
+    | "end" { END } // end block
+    | "for" { FOR } // for statement
+    | "in" { IN } // part of for statement
+    | "open" { OPEN } // open external file
+    | "do" { DO } // open external file
+    | ident { ID(lexeme lexbuf, lexbuf.StartPos, lexbuf.EndPos) }
+    | '~' { TILDE }
+    | ':' { COLON }
+    | ';' { SEMICOLON }
+    | '[' { OPENSQBRACKET }
+    | ']' { CLOSESQBRACKET }
+    | '-' { HYPHEN }
+    | '/' { SLASH }
+    | ',' { COMMA }
+    | '$' { DOLLAR }
+    | '!' { EXCLM }
+    | '.' { DOT }
+    | '*' { STAR }
+    | '@' { AT }
+    | '=' { EQUALS }
+    | '+' { PLUS }
+    | '(' { LPAREN }
+    | ')' { RPAREN }
+    | "<@" { setTokenizer roughage; START_ROUGHAGE }
+    | '{' { setTokenizer inlinePragmaParts ; LBRACE }
+	| string { STRING({i = lexeme lexbuf; s = lexbuf.StartPos; e = lexbuf.EndPos}) }
+    | pname { setTokenizer pragmaLine; PNAME((lexeme lexbuf).[1..]) } // #pname ...
+    | "###" { MARKER }
+    | '$' aa num aa { AAMUTATION(lexeme lexbuf) }
+    | '*' dna intNum dna { DNAMUTATION(lexeme lexbuf) }
+	| '^' { CARAT } // Needed for L2 syntax
+    | '>' { GREATERTHAN } // For L2 syntax
+    | "(*" { comment lexbuf; main lexbuf }
+	| "///" { docstring (new System.Text.StringBuilder()) lexbuf }
+    | "//" { comment1 lexbuf }
+    | newline  { newline lexbuf; NEWLINE }
+    | whitespace  { main lexbuf}
+    | eof { EOF }
+    | _  { failwithf "Unrecognized input '%s'" (lexeme lexbuf) }
+
+// Multi line comment
+and comment = parse
+    | "(*" { comment lexbuf; comment lexbuf } // Recurse on comment
+    | "*)" { () }
+    | newline  { newline lexbuf; comment lexbuf }
+    | eof { failwithf "Unterminated comment." }
+    | _ { comment lexbuf }
+
+and docstring buffer = parse
+	| newline {
+        let d = DOCSTRING({i = buffer.ToString(); s = lexbuf.StartPos; e = lexbuf.EndPos} ) in
+            newline lexbuf; d}
+	| eof { EOF }
+	| _ { docstring (buffer.Append(lexeme lexbuf)) lexbuf }
+
+// Single line comment
+and comment1 = parse
+    | newline  { newline lexbuf; NEWLINE }
+    | eof { EOF }
+    | _ { comment1 lexbuf }
+
+// Single line pragma statement  e.g #foo blah &* blah *()((( etc etc
+and pragmaLine = parse
+    | newline { newline lexbuf; setTokenizer main; NEWLINE }
+    | eof { EOF }
+    | whitespace { pragmaLine lexbuf }
+    | pvalAllowSemicolons { PVALUE(lexeme lexbuf) }
+    | pname { failwithf "Encountered more than one pragma in a single pragma line: %s" (lexeme lexbuf) } // PNAME((lexeme lexbuf).[1..]) }
+
+/// Tokenizer for inline pragmas.
+and inlinePragmaParts = parse
+    | newline    { failwithf "Unexpected end of line in inline pragma." }
+    | eof        { failwithf "Unexpected end of file in inline pragma." }
+    | whitespace { inlinePragmaParts lexbuf }
+    | ';'        { inlinePragmaParts lexbuf }
+    | '}'        { setTokenizer main; RBRACE }
+    | pname      { PNAME((lexeme lexbuf).[1..]) }  // #foo
+    | pval       { PVALUE(lexeme lexbuf) }
+    | _          { failwithf "Unexpected character char='%s' in inline pragma."(lexeme lexbuf) }
+
+and roughage = parse
+    | ident { ID(lexeme lexbuf, lexbuf.StartPos, lexbuf.EndPos) }
+    | ':' { COLON }
+    | '^' { CARAT }
+    | '.' { DOT }
+    | '[' { OPENSQBRACKET }
+    | ']' { CLOSESQBRACKET }
+    | '>' { GREATERTHAN }
+    | '<' { LESSTHAN }
+    | '-' { HYPHEN }
+	| whitespace { roughage lexbuf }
+    | "@>" { setTokenizer main ; END_ROUGHAGE}
+    | newline { newline lexbuf; NEWLINE }
+    | eof { failwithf "Encountered end of file inside a roughage section, missing a '@>'." }
+
+{
+setTokenizer main
+
+/// Custom tokenizer front end to select between sub-parsers for
+/// different languages and grammar regions.
+let gslTokenizer verbose (x:LexBuffer<char>) =
+    //printf "R?=%s" (if inRoughage then "Y" else "N")
+    if verbose then
+        // show progress tokenizing
+        if x.EndPos.Line % 1000 = 0 then
+            printf "%d ... " x.EndPos.Line
+            Console.Out.Flush()
+    let t = currentTokenizer x
+    if verbose then
+        printfn "%A" t
+    t
+}
