@@ -38,7 +38,7 @@ rule main = parse
     | num { INT(Convert.ToInt32(lexeme lexbuf)) }
     | linker '-' linker '-' ['0' '1'] { LINKER(lexeme lexbuf) }
     | "let" { LET } // let foo = bar  alias definition
-    | "cut" { CUT } // cut <expression>  nucleases
+    | "cut" { CUT } // cut <expression>  crisprs
     | "end" { END } // end block
     | "for" { FOR } // for statement
     | "in" { IN } // part of for statement

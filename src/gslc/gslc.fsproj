@@ -108,7 +108,7 @@
     <Compile Include="primerDump.fs" />
     <None Include="runtests.fsx" />
     <Compile Include="gslcProcess.fs" />
-    <Compile Include="version.fs" />
+    <Compile Include="semversion.fs" />
     <Compile Include="commandConfig.fs" />
     <Compile Include="gslc.fs" />
     <None Include="Script.fsx" />
@@ -142,4 +142,15 @@
     <Reference Include="System.Xml" />
     <Reference Include="System.Xml.Linq" />
   </ItemGroup>
+  <Choose>
+    <When Condition="$(TargetFrameworkIdentifier) == '.NETFramework' And ($(TargetFrameworkVersion) == 'v4.5' Or $(TargetFrameworkVersion) == 'v4.5.1' Or $(TargetFrameworkVersion) == 'v4.5.2' Or $(TargetFrameworkVersion) == 'v4.5.3' Or $(TargetFrameworkVersion) == 'v4.6' Or $(TargetFrameworkVersion) == 'v4.6.1' Or $(TargetFrameworkVersion) == 'v4.6.2' Or $(TargetFrameworkVersion) == 'v4.6.3')">
+      <ItemGroup>
+        <Reference Include="Amyris.Bio">
+          <HintPath>..\..\packages\Amyris.Bio\lib\net45\Amyris.Bio.dll</HintPath>
+          <Private>True</Private>
+          <Paket>True</Paket>
+        </Reference>
+      </ItemGroup>
+    </When>
+  </Choose>
 </Project>
