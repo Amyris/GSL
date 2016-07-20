@@ -4,3 +4,4 @@ group Build
   FsLexYacc.Runtime
   MathNet.Numerics
   Newtonsoft.Json  
+  FSharp.Data
