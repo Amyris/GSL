@@ -174,7 +174,8 @@ docs/output/
 
 # Generated code
 src/gslc/gsl.fs
-src/gslc/gsly.fs
+src/gslc/gsllex.fs
+src/gslc/gslyyacc.fs
 
 # Temp folder used for publishing docs
 temp/
