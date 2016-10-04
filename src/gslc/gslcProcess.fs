@@ -53,7 +53,7 @@ let loadGlobalAssets (opts:ParsedOptions) =
     let library =
         if File.Exists lib then
             Amyris.Bio.biolib.readReference lib
-            |> Seq.map (fun kv -> (kv.Key.ToUpper(),kv.Value))
+            |> Seq.map (fun kv -> (kv.Key.ToUpper(),kv.Value |> basesUpper ))
             |> Map.ofSeq
         else Map.empty
 

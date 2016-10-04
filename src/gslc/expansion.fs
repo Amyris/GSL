@@ -63,7 +63,7 @@ let expandNames (tree: GSLLine list) =
             | ASSEMBLY(a) when a.name.IsNone -> // This one needs a name
                 let literal = prettyPrintLine line |> cleanHashName
                 let name = literal.Substring(0, min literal.Length maxNameLen).Replace("@","(@)")
-                yield PRAGMA({definition = namePragmaDef; args = [name]})
+                yield PRAGMA({definition = namePragmaDef(); args = [name]})
                 yield line
             | x -> yield x // Non assembly line
         } |> List.ofSeq

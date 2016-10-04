@@ -64,7 +64,11 @@ type GenomeDef(p:string) as this = class
         let fastaPath = opj refDir (sprintf "%s.fsa" projName)
         suffixTreePath <- Some(opj refDir "suffixTree.st")
         
-        fasta <- Some(Amyris.Bio.biolib.readReference fastaPath)
+        fasta <- (let d = System.Collections.Generic.Dictionary<_,_>()
+                  for kv in Amyris.Bio.biolib.readReference fastaPath do
+                        d.Add(kv.Key,(shared.basesUpper kv.Value))
+                  Some d
+                  )
         feats <-  Some(sgd.loadFeatures featsPath)
         
         let i1 = feats.Value |> Array.mapi (fun i f -> f.sysName,i)

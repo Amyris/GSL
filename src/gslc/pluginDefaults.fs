@@ -6,11 +6,17 @@ type Plugin = {
                 name : string ; 
                 alleleSwapAA : alleleSwapPluginDefs.AlleleSwapProvider option ;
                 l2KOTitration : l2PluginDefs.L2Provider option;
-                providesGlobalPragmas:string list
-                providesLocalPragmas:string list
+                providesPragmas:pragmaTypes.PragmaDef list
                 providesCapas: string list
               }
-
+/// Default empty plugin that can be selectively altered to create relevant fields
+let defaultPlugin = {
+            name = "example plugin" 
+            alleleSwapAA = None
+            l2KOTitration = None
+            providesCapas = []
+            providesPragmas = []
+        }
 
 let defaultPlugins = [
         { name = "allele swap" ; // Marker based allele swap
@@ -20,8 +26,7 @@ let defaultPlugins = [
                     provider = alleleSwaps.classicAAMut
             }
           l2KOTitration = None
-          providesGlobalPragmas = []
-          providesLocalPragmas = []
+          providesPragmas = []
           providesCapas = []
         } ;
         { 
@@ -33,8 +38,7 @@ let defaultPlugins = [
                     explicitLocusProvider = l2expline.generateOutputsExplicitLocus
                     implicitLocusProvider = l2expline.generateOutputsTitrations
                 }
-            providesGlobalPragmas = []
-            providesLocalPragmas = []
+            providesPragmas = []
             providesCapas = []
         }
 ]

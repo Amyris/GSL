@@ -66,7 +66,7 @@ type Assembly =
     capabilities: Capabilities; 
     docStrings: DocstringLine list list}
 
-// All possible types of a GSL Variable
+/// All possible types of a GSL Variable
 type GSLVar = 
     | GSLV_PPP of PPP
     | GSLV_ASSEM of PPP list

@@ -43,7 +43,7 @@ type PragmaProperty =
 /// A pragma is fully specified by its name and the shape of the arguments it accepts.
 /// A validation function may be optionally provided to fail fast during parsing
 /// rather than when the pragma is used.
-and PragmaDef = {
+type PragmaDef = {
     name: string;
     argShape: PragmaArgShape;
     desc: string;
@@ -96,8 +96,8 @@ let parseDouble = parseNumber (Double.TryParse) "float"
 
 /// Pass-through placeholder validator.
 let noValidate _ = Ok
-
-let pragmaDefs =
+/// Base set of hard coded pragmas.  Plugins might augment this list
+let pragmaDefsStatic : PragmaDef list =
    [{name = "push"; argShape = Zero; scope = [Part];
      desc = "Push transient pragmas onto stack.";
      properties = []; validate = noValidate}
@@ -202,16 +202,60 @@ let pragmaDefs =
      properties = []; validate = parseInt};
      {name = "swapend"; argShape = One; scope = [Part];
      desc = "State an end preference for an allele swap. Arg should be '3' or '5'.";
-     properties = []; validate = parseInt}]
+     properties = []; validate = parseInt}
+    ]
 
 /// Legal/Valid pragma names and defintions for lookup by name
-let legalPragmas = pragmaDefs |> List.map (fun p -> p.name, p) |> Map.ofList
+let mutable legalPragmas : Map<_,_> option = None
+let mutable pragmaDefs : PragmaDef list option = None
+
+let rec finalizePragmas pluginPragmas =
+    pragmaDefs <- Some (pluginPragmas@pragmaDefsStatic)
+    legalPragmas <- Some ( pragmaDefs.Value
+                            |> List.map (fun p -> p.name, p) 
+                            |> Map.ofList
+                         )  
+    /// Idiot check that we don't have any duplicate pragmas.
+    if legalPragmas.Value.Count <> pragmaDefs.Value.Length then
+        failwithf "%d pragmas were defined but size of legalPragmas map is only %d. Name aliases?"
+            (pragmaDefs.Value.Length) (legalPragmas.Value.Count)
+
+
+    /// Make sure any pragmas that invert do it sensibly.
+    pragmaDefs.Value  |> List.choose pragmaInverts |> ignore
+and pragmaInverts p =
+// FIXME: this function mixes validation and retrieval and is called by client code.
+// Refactor to separate these things.
+/// Determine if a pragma inverts, and validate that it inverts to a compatible pragma.
+/// Returns the definition of the pragma it inverts to.
+
+    let invertsTo =
+        p.properties
+        |> List.choose (fun prop -> match prop with | InvertsTo(x) -> Some(x) | _ -> None)
+    match invertsTo with
+    | [] -> None
+    | [x] ->
+        match legalPragmas with
+        | None -> failwithf "ERROR: internal, pragmaInverts legalPragmas uninitialized"
+        | Some lp ->
+            match lp.TryFind x with
+            | None ->
+                failwithf "Pragma %s inverts to an unknown pragma %s" (p.name) x
+            | Some(invTo) -> // inverts to a known pragma, make sure they have the same shape
+                if p.argShape <> invTo.argShape then
+                    failwithf "Pragma %s inverts to %s but they have differing argShapes."
+                        (p.name) (invTo.name)
+                Some(invTo)
+    | _ -> failwithf "Pragma %s inverts to more than one pragma." (p.name)
+    // TODO: the presence of this last clause tells us that an extensible list of
+    // pragma properties might not be the best type for this domain, but it isn't
+    // the end of the world.  Prefer this to infectious fields on every pragma.
 
 /// Format a pragma definition.
 let formatPragma p =
     let argDescFormat v = sprintf "<a%d>" v
     let makeArgDesc (n:int) = [0..n-1] |> Seq.map argDescFormat |> String.concat " "
-    let argDesc =
+    let argDesc = 
         match p.argShape with
         | Zero -> ""
         | One -> makeArgDesc 1
@@ -227,61 +271,41 @@ let formatPragma p =
 
 /// Print all available pragmas.
 let pragmaUsage () =
-    let orderedPragmas = pragmaDefs |> List.sortBy (fun p -> p.name)
+    let orderedPragmas = 
+        match pragmaDefs with
+            | None -> failwithf "ERROR: internal error, pragma def initialization not finalized"
+            | Some p -> p|> List.sortBy (fun p -> p.name)
     for p in orderedPragmas do printfn "%s" (formatPragma p)
 
 /// This pragma is constructed manually during expansion.
-let namePragmaDef =
-    match legalPragmas.TryFind "name" with
-    | Some(p) -> p
-    | None -> failwith "The #name pragma must be defined, but is not in legal pragmas."
-
-/// Idiot check that we don't have any duplicate pragmas.
-if legalPragmas.Count <> pragmaDefs.Length then
-    failwithf "%d pragmas were defined but size of legalPragmas map is only %d. Name aliases?"
-        (pragmaDefs.Length) (legalPragmas.Count)
-
-// FIXME: this function mixes validation and retrieval and is called by client code.
-// Refactor to separate these things.
-/// Determine if a pragma inverts, and validate that it inverts to a compatible pragma.
-/// Returns the definition of the pragma it inverts to.
-let pragmaInverts p =
-    let invertsTo =
-        p.properties
-        |> List.choose (fun prop -> match prop with | InvertsTo(x) -> Some(x) | _ -> None)
-    match invertsTo with
-    | [] -> None
-    | [x] ->
-        match legalPragmas.TryFind x with
-        | None ->
-            failwithf "Pragma %s inverts to an unknown pragma %s" (p.name) x
-        | Some(invTo) -> // inverts to a known pragma, make sure they have the same shape
-            if p.argShape <> invTo.argShape then
-                failwithf "Pragma %s inverts to %s but they have differing argShapes."
-                    (p.name) (invTo.name)
-            Some(invTo)
-    | _ -> failwithf "Pragma %s inverts to more than one pragma." (p.name)
-    // TODO: the presence of this last clause tells us that an extensible list of
-    // pragma properties might not be the best type for this domain, but it isn't
-    // the end of the world.  Prefer this to infectious fields on every pragma.
-
-/// Make sure any pragmas that invert do it sensibly.
-pragmaDefs |> List.choose pragmaInverts |> ignore
+let namePragmaDef() =
+    match legalPragmas with
+        | None -> failwithf "ERROR: internal, legalPragmas uninitialized"
+        | Some lp ->
+            match lp.TryFind "name" with
+            | Some(p) -> p
+            | None -> failwith "The #name pragma must be defined, but is not in legal pragmas."
 
 /// Raise an exception if pName is not among the registered pragmas.
 let validatePragmaName pName =
-    if not (legalPragmas.ContainsKey pName) then
-        failwithf "Requested unknown pragma '#%s'."
-            pName
+    match legalPragmas with
+        | None -> failwithf "ERROR: internal, legalPragmas uninitialized"
+        | Some lp ->
+            if not (lp.ContainsKey pName) then
+                failwithf "Requested unknown pragma '#%s'."
+                    pName
 
 /// Validated pragma construction during parsing
 /// Fails with an exception if the pragma doesn't exist or has the wrong number of args.
 let buildPragma (name:string) (values:string list) =
     // try to get the pragma defintion
     let def =
-        match legalPragmas.TryFind name with
-        | Some(p) -> p
-        | None -> failwithf "Unknown or invalid pragma: '#%s'" name
+        match legalPragmas with
+            | None -> failwithf "ERROR: legalPragmas uninitialized in buildPragma"
+            | Some lp ->
+                match lp.TryFind name with
+                | Some(p) -> p
+                | None -> failwithf "Unknown or invalid pragma: '#%s'" name
 
     // check that the right number of arguments were supplied
     let nArg = values.Length

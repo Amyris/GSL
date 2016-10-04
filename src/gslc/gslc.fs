@@ -29,10 +29,11 @@ let testPrimer() =
 
     ()
 
-let Main() =
+[<EntryPoint>]
+let Main argv =
     // Get the input args and handle a few special cases
     let args =
-        match (argv() |> List.ofArray |> List.tail) with
+        match (argv |> List.ofArray (*|> List.tail*)) with
         // print usage info
         | [] | "--help"::_ ->
             printUsage()
@@ -83,6 +84,11 @@ let Main() =
 
         /// Combined default plugins plus any extensions in plugins.fs
         let allPlugins = plugins.plugins@pluginDefaults.defaultPlugins
+        let pluginPragmas = allPlugins 
+                                |> List.map (fun p -> p.providesPragmas) 
+                                |> List.reduce (@)
+        // combine plugin pragmas and static pragmas into final legal list
+        pragmaTypes.finalizePragmas pluginPragmas
         // Run GSLC on the input file.
         let compilerOutput = processGSL opts allPlugins ga input
         match compilerOutput with
@@ -103,5 +109,4 @@ let Main() =
 
         exit 1
 
-Main()
-printf "Done!\n"
+//printf "Done!\n"

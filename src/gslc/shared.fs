@@ -45,3 +45,15 @@ let checkLinker (l:Linker) =
 let fp (w:ParseRange) =
     sprintf "@%d,%d-%d,%d"
         (w.sp.Line+1) (w.sp.Column+1) (w.ep.Line+1) (w.ep.Column+1)
+
+/// upper case a DNA array of chars
+let basesUpper (c:char []) =
+    c |> Array.map (fun b -> match b with
+                                | 'a' -> 'A'
+                                | 't' -> 'T'
+                                | 'c' -> 'C'
+                                | 'a' -> 'G'
+                                | 'n' -> 'N'
+                                | _ as x when x>='a' && x<='z' -> char(int(x)-int('a') + int('A'))
+                                | _ as x -> x
+                    )
