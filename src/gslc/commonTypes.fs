@@ -28,7 +28,10 @@ type ParsedOptions =
     rabitsOnly: bool;
     docStringFile: string option;
     proxyURL: string option;
-    lexOnly: bool}
+    lexOnly: bool
+    refList : bool
+    refDump : string option
+    }
 
 type DNAIntervalType = ANNEAL | RYSELINKER | AMP | SANDWICH 
 type DNAInterval = {il:int; ir:int; iType:DNAIntervalType}

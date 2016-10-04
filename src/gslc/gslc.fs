@@ -53,7 +53,29 @@ let Main argv =
             printfn "ERROR: %s" err.Message
             exit 1
 
-    if not opts.quiet then printf "// GSL compiler version %s\n" version
+    if not opts.quiet && not opts.refList && opts.refDump.IsNone then printf "// GSL compiler version %s\n" version
+
+    // Handle options requiring no input file
+
+    // generate list of reference genomes
+    if opts.refList then
+        for f in enumerateLibs opts do
+            printfn "refgenome\t%s" f        
+        exit 0
+
+    // dump available loci for one reference genome
+    match opts.refDump with
+        | None -> ()
+        | Some ref ->
+            // dump available loci for this ref genome
+            let p = opj opts.libDir ref
+            if not (Directory.Exists(p)) then
+                failwithf "ERROR: unable to find genome reference dir %s\n" p
+            let gd = new sgdrefformat.GenomeDef(p)
+
+            for f in gd.GetAllFeats() do
+                printfn "%s\t%s\t%s" f.sysName f.gene f.description
+            ()
 
     // For the moment we only support one file argument.
     let inputFile =

@@ -54,6 +54,14 @@ let cmdLineArgs = [
      desc = "generate just rabit output and omit stitches and megastitches";
      proc = fun _ opts -> {opts with rabitsOnly = true} };
 
+    {arg = "reflist" ; param = [] ; alias = [];
+     desc = "list available reference genomes";
+     proc = fun _ opts -> {opts with refList = true}} ;
+
+    {arg = "refdump" ; param = ["refname"] ; alias = [];
+     desc = "dump available loci in reference genome";
+     proc = fun p opts -> {opts with refDump = Some (p.[0])}} ;
+
     {arg = "flat"; param = ["outfile"]; alias = [];
      desc = "write a flat file format for results to outputfile";
      proc = fun p opts -> {opts with flatOut = Some(p.[0])} };
@@ -168,7 +176,10 @@ let defaultOpts:ParsedOptions =
     docStringFile = None;
     proxyURL = None;
     name2IdPath = None;
-    lexOnly = false}
+    lexOnly = false
+    refList = false
+    refDump = None
+    }
 
 /// Parse a command line arguments.  Return the parsed options and the list of
 /// input files.  Raises an exception for ill-formed or unrecognized args.

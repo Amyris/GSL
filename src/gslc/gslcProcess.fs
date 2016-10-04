@@ -45,6 +45,11 @@ type GlobalAssets =
      codonTableCache: plugins.CodonTableCache;
      rgs: Map<string, GenomeDef>;}
 
+/// generate list of available reference genome folders
+let enumerateLibs (opts:ParsedOptions) =
+    Directory.EnumerateDirectories(opts.libDir)
+        |> Seq.map (Amyris.Bio.utils.baseName) |> List.ofSeq
+
 /// Load static assets and initialize global caches.
 let loadGlobalAssets (opts:ParsedOptions) =
     let lib = opj opts.libDir "lib.fa"
@@ -62,9 +67,8 @@ let loadGlobalAssets (opts:ParsedOptions) =
 
     if opts.verbose then printfn "opts.libDir=%s" opts.libDir
 
-    let availRefs =
-        Directory.EnumerateDirectories(opts.libDir)
-        |> Seq.map (Amyris.Bio.utils.baseName) |> List.ofSeq
+    let availRefs = enumerateLibs opts
+        
     if opts.verbose then printfn "availrefs=%A" availRefs
 
     let rgs =

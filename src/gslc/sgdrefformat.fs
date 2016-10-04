@@ -80,7 +80,12 @@ type GenomeDef(p:string) as this = class
         match featIndex with
             | None -> failwith "Access to unloaded GenomeDef"
             | Some(fi) -> feats.Value.[fi.[g]]
-    
+    /// Return array of all genomic features we have loaded
+    member x.GetAllFeats() =
+        ensureLoaded()
+        let distinctIndices = [ for kv in featIndex.Value -> kv.Value ] |> List.distinct
+        [| for i in distinctIndices -> feats.Value.[i] |]
+
     member x.Dna(errorContext:string,chr:string,l':int<ZeroOffset>,r':int<ZeroOffset>) =
             ensureLoaded()
             let l,r = l'/1<ZeroOffset> , r'/1<ZeroOffset>
