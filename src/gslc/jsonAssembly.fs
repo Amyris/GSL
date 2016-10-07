@@ -11,7 +11,7 @@ open shared
 open Newtonsoft.Json
 open System.Collections.Generic
 
-/// Represents one piece of DNA for assembly, capturing its origins and relevant details
+/// A few key fields of a DNA slice for JSON representation.
 type DNASliceJson =
    {id: string; 
     extId: string; 
@@ -30,6 +30,7 @@ type DNASliceJson =
     description: string ; 
 }
 
+/// A few key fields of Assembly output for JSON representation.
 type AssemblyOutJson = 
     { id: string;
     name: string;
