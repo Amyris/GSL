@@ -127,6 +127,10 @@ let cmdLineArgs = [
     {arg = "name2id"; param = ["outfile"]; alias = [];
      desc = "filename/path for name2id mapping in rycody output.\nDefault is projname.name2id.txt";
      proc = fun p opts -> {opts with name2IdPath = Some(p.[0])} };
+
+    {arg = "json"; param = ["outfile"]; alias = [];
+     desc = "write a json file format for the assembly results";
+     proc = fun p opts -> {opts with jsonOut = Some(p.[0])} };
 ]
 
 // TODO: add command aliases
@@ -179,6 +183,7 @@ let defaultOpts:ParsedOptions =
     lexOnly = false
     refList = false
     refDump = None
+    jsonOut = None
     }
 
 /// Parse a command line arguments.  Return the parsed options and the list of
