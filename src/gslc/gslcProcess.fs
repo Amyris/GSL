@@ -314,7 +314,7 @@ let writeOutput
 
     match opts.jsonOut with
     | None -> ()
-    | Some(prefix) -> dumpJsonAssemblies prefix tweakedTree
+    | Some(outFile) -> dumpJsonAssemblies outFile tweakedTree
 
     match opts.thumperOut with
     | None -> ()
