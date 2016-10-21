@@ -31,6 +31,7 @@ type ParsedOptions =
     lexOnly: bool
     refList : bool
     refDump : string option
+    jsonOut: string option
     }
 
 type DNAIntervalType = ANNEAL | RYSELINKER | AMP | SANDWICH 

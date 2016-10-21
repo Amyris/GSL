@@ -50,7 +50,6 @@
     </Otherwise>
   </Choose>
   <Import Project="$(FSharpTargetsPath)" Condition="Exists('$(FSharpTargetsPath)')" />
-  <Import Project="c:\seq\GSL\packages\FsLexYacc.6.1.0\build\FsLexYacc.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
@@ -89,6 +88,7 @@
     <Compile Include="alleleSwapPluginDefs.fs" />
     <Compile Include="alleleSwaps.fs" />
     <Compile Include="ape.fs" />
+    <Compile Include="jsonAssembly.fs" />
     <Compile Include="cloneManager.fs" />
     <Compile Include="thumper.fs" />
     <Compile Include="l2PluginDefs.fs" />
